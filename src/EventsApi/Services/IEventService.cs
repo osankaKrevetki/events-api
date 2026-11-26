@@ -1,4 +1,6 @@
-﻿using EventsApi.Models;
+using EventsApi.Dtos;
+using EventsApi.Exceptions;
+using EventsApi.Models;
 
 namespace EventsApi.Services;
 
@@ -7,16 +9,30 @@ namespace EventsApi.Services;
 /// </summary>
 public interface IEventService
 {
-    IReadOnlyCollection<Event> GetAll();
-    Event? GetById(Guid id);
+    /// <summary>
+    /// Возвращает страницу мероприятий с учётом фильтрации и пагинации.
+    /// Фильтры применяются только если переданы и объединяются по логическому И.
+    /// </summary>
+    /// <exception cref="ValidationException">Некорректные параметры пагинации.</exception>
+    PaginatedResult<Event> GetEvents(EventQuery query);
+
+    /// <summary>Возвращает мероприятие по идентификатору.</summary>
+    /// <exception cref="NotFoundException">Мероприятие не найдено.</exception>
+    Event GetById(Guid id);
+
+    /// <summary>Создаёт мероприятие.</summary>
+    /// <exception cref="ValidationException">Некорректные данные мероприятия.</exception>
     Event Create(Event newEvent);
 
     /// <summary>
     /// Полностью обновляет мероприятие
     /// </summary>
-    /// <returns>Обновленное мероприятие или <c>null</c>, есил мероприятие не найдено</returns>
-    Event? Update(Guid id, Event updatedEvent);
+    /// <returns>Обновленное мероприятие</returns>
+    /// <exception cref="NotFoundException">Мероприятие не найдено.</exception>
+    /// <exception cref="ValidationException">Некорректные данные мероприятия.</exception>
+    Event Update(Guid id, Event updatedEvent);
 
-    /// <returns><c>true</c>, если мероприятие было удалено; <c>false</c>, если не найдено</returns>
-    bool Delete(Guid id);
+    /// <summary>Удаляет мероприятие.</summary>
+    /// <exception cref="NotFoundException">Мероприятие не найдено.</exception>
+    void Delete(Guid id);
 }

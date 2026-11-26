@@ -1,4 +1,4 @@
-﻿using EventsApi.Dtos;
+using EventsApi.Dtos;
 using EventsApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,18 +14,42 @@ public class EventsController : ControllerBase
 {
     private readonly IEventService _eventService;
 
+    /// <summary>Создаёт контроллер.</summary>
     public EventsController(IEventService eventService)
     {
         _eventService = eventService;
     }
 
-    /// <summary>Получить список всех мероприятий.</summary>
+    /// <summary>
+    /// Получить постраничный список мероприятий с фильтрацией.
+    /// Фильтры применяются только если переданы и объединяются по логическому И.
+    /// </summary>
+    /// <param name="title">Поиск по названию (регистронезависимый, частичное совпадение).</param>
+    /// <param name="from">События, которые начинаются не раньше указанной даты.</param>
+    /// <param name="to">События, которые заканчиваются не позже указанной даты.</param>
+    /// <param name="page">Номер страницы, начиная с 1.</param>
+    /// <param name="pageSize">Количество элементов на странице, от 1 до 100.</param>
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<EventResponse>), StatusCodes.Status200OK)]
-    public ActionResult<IEnumerable<EventResponse>> GetAll()
+    [ProducesResponseType(typeof(PaginatedResult<EventResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public ActionResult<PaginatedResult<EventResponse>> GetAll(
+        [FromQuery] string? title = null,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] int page = EventQuery.DefaultPage,
+        [FromQuery] int pageSize = EventQuery.DefaultPageSize)
     {
-        var events = _eventService.GetAll().Select(e => e.ToResponse());
-        return Ok(events);
+        var query = new EventQuery
+        {
+            Title = title,
+            From = from,
+            To = to,
+            Page = page,
+            PageSize = pageSize
+        };
+
+        var result = _eventService.GetEvents(query);
+        return Ok(result.Map(e => e.ToResponse()));
     }
 
     /// <summary>Получить мероприятие по идентификатору.</summary>
@@ -34,8 +58,7 @@ public class EventsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public ActionResult<EventResponse> GetById(Guid id)
     {
-        var found = _eventService.GetById(id);
-        return found is null ? EventNotFound(id) : Ok(found.ToResponse());
+        return Ok(_eventService.GetById(id).ToResponse());
     }
 
     /// <summary>Создать мероприятие.</summary>
@@ -58,7 +81,7 @@ public class EventsController : ControllerBase
     public ActionResult<EventResponse> Update(Guid id, [FromBody] EventRequest request)
     {
         var updated = _eventService.Update(id, request.ToModel());
-        return updated is null ? EventNotFound(id) : Ok(updated.ToResponse());
+        return Ok(updated.ToResponse());
     }
 
     /// <summary>Удалить мероприятие.</summary>
@@ -67,12 +90,7 @@ public class EventsController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public IActionResult Delete(Guid id)
     {
-        return _eventService.Delete(id) ? NoContent() : EventNotFound(id);
+        _eventService.Delete(id);
+        return NoContent();
     }
-
-    private ObjectResult EventNotFound(Guid id) =>
-        Problem(
-            statusCode: StatusCodes.Status404NotFound,
-            title: "Мероприятие не найдено",
-            detail: $"Мероприятие с id '{id}' не найдено.");
 }
