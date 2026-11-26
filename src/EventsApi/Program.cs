@@ -1,4 +1,5 @@
 using System.Reflection;
+using EventsApi.Middleware;
 using EventsApi.Services;
 using Microsoft.OpenApi.Models;
 
@@ -13,7 +14,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "Events API",
         Version = "v1",
-        Description = "REST API для управления мероприятиями"
+        Description = "REST API РґР»СЏ СѓРїСЂР°РІР»РµРЅРёСЏ РјРµСЂРѕРїСЂРёСЏС‚РёСЏРјРё"
     });
 
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
@@ -24,7 +25,7 @@ builder.Services.AddSingleton<IEventService, EventService>();
 
 var app = builder.Build();
 
-app.UseExceptionHandler();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseStatusCodePages();
 
 app.UseSwagger();
