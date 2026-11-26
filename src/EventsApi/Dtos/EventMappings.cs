@@ -7,6 +7,7 @@ namespace EventsApi.Dtos;
 /// </summary>
 public static class EventMappings
 {
+    /// <summary>Собирает доменную модель из запроса на создание или обновление.</summary>
     public static Event ToModel(this EventRequest request) => new()
     {
         Title = request.Title!.Trim(),
@@ -15,18 +16,25 @@ public static class EventMappings
         EndAt = request.EndAt!.Value
     };
 
-    public static EventResponse ToResponse(this Event model) =>
-        new(model.Id, model.Title, model.Description, model.StartAt, model.EndAt);
+    /// <summary>Собирает ответ API из доменной модели.</summary>
+    public static EventResponse ToResponse(this Event model) => new()
+    {
+        Id = model.Id,
+        Title = model.Title,
+        Description = model.Description,
+        StartAt = model.StartAt,
+        EndAt = model.EndAt
+    };
 
     /// <summary>
     /// Переводит страницу доменных моделей в страницу DTO, сохраняя метаданные пагинации.
     /// </summary>
     public static PaginatedResult<TResult> Map<TSource, TResult>(
         this PaginatedResult<TSource> source, Func<TSource, TResult> mapper) => new()
-    {
-        Items = source.Items.Select(mapper).ToList(),
-        TotalCount = source.TotalCount,
-        Page = source.Page,
-        PageSize = source.PageSize
-    };
+        {
+            Items = source.Items.Select(mapper).ToList(),
+            TotalCount = source.TotalCount,
+            Page = source.Page,
+            PageSize = source.PageSize
+        };
 }

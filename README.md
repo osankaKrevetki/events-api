@@ -17,16 +17,18 @@ dotnet run --project src/EventsApi
 ```
 
 После запуска API доступно по адресу `http://localhost:5140`,
-Swagger UI — по адресу http://localhost:5140/swagger.
+Swagger UI — по адресу http://localhost:5140/swagger
+(Swagger включён только в окружении Development).
 
 Для запуска по HTTPS: `dotnet run --project src/EventsApi --launch-profile https`
 (Swagger: https://localhost:7263/swagger).
 
 ## Тесты
 
-Юнит-тесты бизнес-логики `EventService` написаны на xUnit + FluentAssertions
-и покрывают CRUD-операции, фильтрацию, пагинацию и неуспешные сценарии
-(несуществующий id, некорректные даты и параметры пагинации).
+Юнит-тесты написаны на xUnit + FluentAssertions и покрывают бизнес-логику `EventService`
+(CRUD-операции, фильтрацию, пагинацию, неуспешные сценарии: несуществующий id,
+некорректные даты и параметры пагинации) и глобальный обработчик исключений
+`ExceptionHandlingMiddleware` (статус-коды, content-type, состав тела Problem Details).
 
 ```bash
 dotnet test
@@ -139,36 +141,35 @@ GET /events?title=dotnet&from=2026-02-01T00:00:00&to=2026-02-28T23:59:59&page=1&
 ### Ошибки
 
 Все ошибки возвращаются в едином формате [Problem Details (RFC 7807)](https://datatracker.ietf.org/doc/html/rfc7807)
-с типом содержимого `application/problem+json`.
+с типом содержимого `application/problem+json` и общими полями: `title`, `status`, `detail`
+(кроме 500), `instance` и `traceId`. Источники ошибок разные, форма одна:
 
-Необработанные исключения перехватывает глобальный `ExceptionHandlingMiddleware`
-(этап 2 спринта 2): ошибки валидации → `400 Bad Request`, отсутствие ресурса → `404 Not Found`,
-непредвиденные ошибки → `500 Internal Server Error`; ошибки логируются через `ILogger`.
+- валидация тела запроса и query-параметров → `400 Bad Request`;
+- несуществующий маршрут или метод → `404 Not Found` / `405 Method Not Allowed`;
+- несуществующее мероприятие → `404 Not Found` (из `ExceptionHandlingMiddleware`);
+- непредвиденные ошибки → `500 Internal Server Error`.
 
-Ошибка валидации полей модели (`400 Bad Request`):
+Необработанные исключения перехватывает глобальный `ExceptionHandlingMiddleware`:
+`ValidationException` и `BadHttpRequestException` → 400, `NotFoundException` → 404,
+остальное → 500. Ошибки логируются через `ILogger`; текст непредвиденного исключения
+наружу не отдаётся — он остаётся только в логе, а в ответе есть `traceId` для сопоставления.
 
-```json
-{
-  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
-  "title": "One or more validation errors occurred.",
-  "status": 400,
-  "errors": {
-    "EndAt": ["Дата окончания (EndAt) должна быть позже даты начала (StartAt)."]
-  }
-}
-```
-
-Некорректные параметры пагинации (`400 Bad Request`, из middleware):
+Ошибка валидации (`400 Bad Request`):
 
 ```json
 {
   "title": "Ошибка валидации",
   "status": 400,
-  "detail": "Параметр page должен быть не меньше 1.",
+  "errors": {
+    "EndAt": ["Дата окончания (EndAt) должна быть позже даты начала (StartAt)."]
+  },
   "instance": "/events",
   "traceId": "0HNQBII134TUM:00000001"
 }
 ```
+
+Тексты ошибок биндинга query-параметров (например, `?page=abc`) остаются
+англоязычными сообщениями фреймворка — `The value 'abc' is not valid.`.
 
 Мероприятие не найдено (`404 Not Found`, из middleware):
 
@@ -188,7 +189,6 @@ GET /events?title=dotnet&from=2026-02-01T00:00:00&to=2026-02-28T23:59:59&page=1&
 {
   "title": "Внутренняя ошибка сервера",
   "status": 500,
-  "detail": "Unexpected failure.",
   "instance": "/events",
   "traceId": "0HNQBII134TUS:00000001"
 }

@@ -6,6 +6,7 @@ namespace EventsApi.Exceptions;
 /// </summary>
 public class ValidationException : Exception
 {
+    /// <summary>Создаёт исключение с текстом ошибки валидации.</summary>
     public ValidationException(string message) : base(message)
     {
     }

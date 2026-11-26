@@ -148,4 +148,38 @@ public class EventServiceFilteringTests
         // Assert
         result.Items.Single().Title.Should().Be("dotnet party");
     }
+
+    [Fact]
+    public void FromLaterThanTo_ReturnsEmptyResult()
+    {
+        // Arrange
+        var service = TestEventData.ServiceWithThreeEvents();
+        var query = new EventQuery { From = TestEventData.Mar5, To = TestEventData.Feb1 };
+
+        // Act
+        var result = service.GetEvents(query);
+
+        // Assert
+        result.TotalCount.Should().Be(0);
+        result.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void FilterWithPagination_FiltersBeforePaginating()
+    {
+        // Arrange
+        // Из 25 мероприятий фильтр "Мероприятие 1" даёт 10 (10–19);
+        // после сортировки по дате вторая страница по 5 элементов начинается с "Мероприятие 15".
+        var service = TestEventData.ServiceWithEvents(25);
+        var query = new EventQuery { Title = "Мероприятие 1", Page = 2, PageSize = 5 };
+
+        // Act
+        var result = service.GetEvents(query);
+
+        // Assert
+        result.TotalCount.Should().Be(10);
+        result.TotalPages.Should().Be(2);
+        result.Items.Should().HaveCount(5);
+        result.Items.First().Title.Should().Be("Мероприятие 15");
+    }
 }

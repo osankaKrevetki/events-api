@@ -20,13 +20,14 @@ internal static class TestEventData
     public static Event MakeEvent(
         string title = "Мероприятие",
         DateTime? start = null,
-        DateTime? end = null) => new()
-    {
-        Title = title,
-        Description = "Описание",
-        StartAt = start ?? Jan10,
-        EndAt = end ?? Jan12
-    };
+        DateTime? end = null,
+        string? description = "Описание") => new()
+        {
+            Title = title,
+            Description = description,
+            StartAt = start ?? Jan10,
+            EndAt = end ?? Jan12
+        };
 
     /// <summary>DotNet Conf: 10–12 января.</summary>
     public static Event DotNetConf() => new()

@@ -5,13 +5,15 @@ using EventsApi.Models;
 namespace EventsApi.Services;
 
 /// <summary>
-/// Реализация IEventService с хранением данных в памяти приложения
+/// Реализация IEventService с хранением данных в памяти приложения.
+/// Модель Event неизменяемая, поэтому наружу допустимо отдавать ссылки на хранимые объекты.
 /// </summary>
 public class EventService : IEventService
 {
     private readonly List<Event> _events = new();
     private readonly object _lock = new();
 
+    /// <inheritdoc />
     public PaginatedResult<Event> GetEvents(EventQuery query)
     {
         ArgumentNullException.ThrowIfNull(query);
@@ -65,6 +67,7 @@ public class EventService : IEventService
         }
     }
 
+    /// <inheritdoc />
     public Event GetById(Guid id)
     {
         lock (_lock)
@@ -74,38 +77,42 @@ public class EventService : IEventService
         }
     }
 
+    /// <inheritdoc />
     public Event Create(Event newEvent)
     {
         Validate(newEvent);
 
-        newEvent.Id = Guid.NewGuid();
+        var created = newEvent with { Id = Guid.NewGuid() };
 
         lock (_lock)
         {
-            _events.Add(newEvent);
+            _events.Add(created);
         }
 
-        return newEvent;
+        return created;
     }
 
+    /// <inheritdoc />
     public Event Update(Guid id, Event updatedEvent)
     {
-        Validate(updatedEvent);
-
         lock (_lock)
         {
-            var existing = _events.FirstOrDefault(e => e.Id == id)
-                ?? throw new NotFoundException($"Мероприятие с id '{id}' не найдено.");
+            var index = _events.FindIndex(e => e.Id == id);
+            if (index < 0)
+            {
+                throw new NotFoundException($"Мероприятие с id '{id}' не найдено.");
+            }
 
-            existing.Title = updatedEvent.Title;
-            existing.Description = updatedEvent.Description;
-            existing.StartAt = updatedEvent.StartAt;
-            existing.EndAt = updatedEvent.EndAt;
+            Validate(updatedEvent);
 
-            return existing;
+            var updated = updatedEvent with { Id = id };
+            _events[index] = updated;
+
+            return updated;
         }
     }
 
+    /// <inheritdoc />
     public void Delete(Guid id)
     {
         lock (_lock)
@@ -118,27 +125,19 @@ public class EventService : IEventService
     }
 
     /// <summary>
-    /// Проверяет бизнес-правила: название непустое и не длиннее 200 символов,
-    /// дата окончания позже даты начала.
+    /// Проверяет бизнес-правила мероприятия — см. <see cref="EventValidation"/>.
     /// </summary>
     private static void Validate(Event model)
     {
-        var title = model.Title?.Trim() ?? string.Empty;
-
-        if (title.Length == 0)
+        var titleError = EventValidation.GetTitleError(model.Title);
+        if (titleError is not null)
         {
-            throw new ValidationException("Название мероприятия (Title) обязательно.");
+            throw new ValidationException(titleError);
         }
 
-        if (title.Length > EventRequest.TitleMaxLength)
+        if (!EventValidation.IsEndAfterStart(model.StartAt, model.EndAt))
         {
-            throw new ValidationException(
-                $"Название мероприятия (Title) не должно быть длиннее {EventRequest.TitleMaxLength} символов.");
-        }
-
-        if (model.EndAt <= model.StartAt)
-        {
-            throw new ValidationException("Дата окончания (EndAt) должна быть позже даты начала (StartAt).");
+            throw new ValidationException(EventValidation.EndBeforeStartMessage);
         }
     }
 }

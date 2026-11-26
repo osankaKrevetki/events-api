@@ -1,18 +1,17 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
+using EventsApi.Models;
 
 namespace EventsApi.Dtos;
 
 /// <summary>
 /// Данные для создания или полного обновления мероприятия.
+/// Правила валидации общие с сервисом — см. <see cref="EventValidation"/>.
 /// </summary>
 public class EventRequest : IValidatableObject
 {
-    public const int TitleMaxLength = 200;
-
     /// <summary>Название мероприятия.</summary>
     /// <example>Конференция .NET</example>
-    [Required(ErrorMessage = "Поле Title обязательно.")]
-    [StringLength(TitleMaxLength, ErrorMessage = "Поле Title не должно быть длиннее {1} символов.")]
+    [Required(ErrorMessage = EventValidation.TitleRequiredMessage)]
     public string? Title { get; set; }
 
     /// <summary>Описание мероприятия (необязательно).</summary>
@@ -29,13 +28,18 @@ public class EventRequest : IValidatableObject
     [Required(ErrorMessage = "Поле EndAt обязательно.")]
     public DateTime? EndAt { get; set; }
 
+    /// <inheritdoc />
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (StartAt.HasValue && EndAt.HasValue && EndAt.Value <= StartAt.Value)
+        var titleError = EventValidation.GetTitleError(Title);
+        if (titleError is not null)
         {
-            yield return new ValidationResult(
-                "Дата окончания (EndAt) должна быть позже даты начала (StartAt).",
-                new[] { nameof(EndAt) });
+            yield return new ValidationResult(titleError, new[] { nameof(Title) });
+        }
+
+        if (StartAt.HasValue && EndAt.HasValue && !EventValidation.IsEndAfterStart(StartAt.Value, EndAt.Value))
+        {
+            yield return new ValidationResult(EventValidation.EndBeforeStartMessage, new[] { nameof(EndAt) });
         }
     }
 }

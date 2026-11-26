@@ -5,8 +5,13 @@ namespace EventsApi.Dtos;
 /// </summary>
 public class EventQuery
 {
+    /// <summary>Номер страницы по умолчанию.</summary>
     public const int DefaultPage = 1;
+
+    /// <summary>Размер страницы по умолчанию.</summary>
     public const int DefaultPageSize = 10;
+
+    /// <summary>Максимально допустимый размер страницы.</summary>
     public const int MaxPageSize = 100;
 
     /// <summary>Поиск по названию (регистронезависимый, частичное совпадение).</summary>

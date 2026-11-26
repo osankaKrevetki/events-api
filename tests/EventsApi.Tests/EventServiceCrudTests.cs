@@ -20,10 +20,11 @@ public class EventServiceCrudTests
 
         // Act
         var created = service.Create(newEvent);
+        var stored = service.GetById(created.Id);
 
         // Assert
         created.Id.Should().NotBeEmpty();
-        service.GetById(created.Id).Should().BeEquivalentTo(created);
+        stored.Should().BeEquivalentTo(created);
     }
 
     [Fact]
@@ -94,17 +95,20 @@ public class EventServiceCrudTests
         var updated = TestEventData.MakeEvent(
             "DotNet Conf 2027",
             TestEventData.Feb1,
-            TestEventData.Feb3);
+            TestEventData.Feb3,
+            "Обновлённое описание");
 
         // Act
         var result = service.Update(created.Id, updated);
+        var stored = service.GetById(created.Id);
 
         // Assert
         result.Id.Should().Be(created.Id);
         result.Title.Should().Be("DotNet Conf 2027");
+        result.Description.Should().Be("Обновлённое описание");
         result.StartAt.Should().Be(TestEventData.Feb1);
         result.EndAt.Should().Be(TestEventData.Feb3);
-        service.GetById(created.Id).Should().BeEquivalentTo(result);
+        stored.Should().BeEquivalentTo(result);
     }
 
     [Fact]
@@ -116,10 +120,11 @@ public class EventServiceCrudTests
 
         // Act
         service.Delete(created.Id);
+        var result = service.GetEvents(new EventQuery());
+        var act = () => service.GetById(created.Id);
 
         // Assert
-        service.GetEvents(new EventQuery()).TotalCount.Should().Be(3);
-        var act = () => service.GetById(created.Id);
+        result.TotalCount.Should().Be(3);
         act.Should().Throw<NotFoundException>();
     }
 }

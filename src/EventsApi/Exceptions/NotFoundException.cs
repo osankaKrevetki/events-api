@@ -6,6 +6,7 @@ namespace EventsApi.Exceptions;
 /// </summary>
 public class NotFoundException : Exception
 {
+    /// <summary>Создаёт исключение с сообщением о ненайденном ресурсе.</summary>
     public NotFoundException(string message) : base(message)
     {
     }

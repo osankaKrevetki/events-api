@@ -14,6 +14,7 @@ public class EventsController : ControllerBase
 {
     private readonly IEventService _eventService;
 
+    /// <summary>Создаёт контроллер.</summary>
     public EventsController(IEventService eventService)
     {
         _eventService = eventService;

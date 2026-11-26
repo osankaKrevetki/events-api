@@ -1,13 +1,23 @@
-﻿namespace EventsApi.Models;
+namespace EventsApi.Models;
 
 /// <summary>
-/// Мероприятие
+/// Мероприятие. Неизменяемая модель: изменения оформляются созданием новой записи (выражение with),
+/// поэтому наружу можно безопасно отдавать ссылки на хранимые объекты.
 /// </summary>
-public class Event
+public record Event
 {
-    public Guid Id { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string? Description {  get; set; }
-    public DateTime StartAt { get; set; }
-    public DateTime EndAt { get; set; }
+    /// <summary>Уникальный идентификатор.</summary>
+    public Guid Id { get; init; }
+
+    /// <summary>Название.</summary>
+    public string Title { get; init; } = string.Empty;
+
+    /// <summary>Описание.</summary>
+    public string? Description { get; init; }
+
+    /// <summary>Дата и время начала.</summary>
+    public DateTime StartAt { get; init; }
+
+    /// <summary>Дата и время окончания.</summary>
+    public DateTime EndAt { get; init; }
 }
